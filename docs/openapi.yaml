@@ -1,0 +1,401 @@
+openapi: 3.0.3
+info:
+  title: Hostel Use-Change Screening API
+  description: >
+    건축물대장 기반 숙박시설(호스텔) 용도변경 1차 스크리닝 API.
+    최종 인허가 판단이 아니며, hostel-use-change-screening 스킬의 8개 판정 항목
+    (용도지역/위반건축물/방화지구/현재용도/직통계단/소방시설/주차/오수하수)을 그대로 따른다.
+  version: 0.1.0
+servers:
+  - url: https://api.hostel-screening.example.com/api/v1
+    description: Production (예정)
+  - url: http://localhost:8080/api/v1
+    description: Local dev
+
+tags:
+  - name: buildings
+    description: 건축물대장/토지이용계획 조회
+  - name: screenings
+    description: 용도변경 1차 판정
+  - name: competitors
+    description: 경쟁 숙박업소 현황 (반경/업종 분석)
+
+paths:
+  /buildings/search:
+    get:
+      tags: [buildings]
+      summary: 주소로 건물 조회 (건축물대장 자동 연동)
+      description: 캐시에 없으면 건축HUB API를 호출해 대장 정보를 가져와 저장한다.
+      parameters:
+        - name: address
+          in: query
+          required: true
+          description: 지번 또는 도로명 주소
+          schema:
+            type: string
+            example: 부산광역시 중구 남포동5가 58-1
+      responses:
+        "200":
+          description: 조회 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildingProfile"
+        "404":
+          description: 대장에서 건물을 찾을 수 없음
+        "502":
+          description: 공공데이터 API 호출 실패
+
+  /buildings/{buildingId}:
+    get:
+      tags: [buildings]
+      summary: 건물 상세 조회 (저장된 대장 + 층별현황 + 변동사항)
+      parameters:
+        - $ref: "#/components/parameters/BuildingId"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BuildingProfile"
+        "404":
+          description: Not found
+
+  /buildings/{buildingId}/landuse:
+    get:
+      tags: [buildings]
+      summary: 토지이용계획 조회 결과 확인 (2단계)
+      description: 공공 토지이용계획 API 결과가 있으면 반환하고, 없으면 null 필드로 응답한다.
+      parameters:
+        - $ref: "#/components/parameters/BuildingId"
+      responses:
+        "200":
+          description: OK (조회 결과 없을 수 있음)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LanduseLookup"
+    put:
+      tags: [buildings]
+      summary: 토지이용계획 조회 결과 수동 입력
+      description: >
+        공공 API로 자동 조회가 안 되는 항목(지구단위계획 세부 허용용도 등)을
+        사용자가 토지이음/아스트라 조회 결과를 직접 입력할 때 사용한다.
+      parameters:
+        - $ref: "#/components/parameters/BuildingId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LanduseLookupInput"
+      responses:
+        "200":
+          description: 저장 성공
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LanduseLookup"
+
+  /screenings:
+    post:
+      tags: [screenings]
+      summary: 용도변경 1차 판정 요청 생성
+      description: 전환 대상 층을 지정해 8개 항목 판정을 실행하고 결과를 반환한다.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScreeningRequestInput"
+      responses:
+        "201":
+          description: 판정 완료
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScreeningResult"
+        "409":
+          description: 용도지역 관문 미확정 등으로 최종판정 보류 (overallVerdict=PENDING_LANDUSE로 반환됨, 에러 아님)
+
+  /screenings/{screeningId}:
+    get:
+      tags: [screenings]
+      summary: 판정 결과 조회
+      parameters:
+        - name: screeningId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScreeningResult"
+        "404":
+          description: Not found
+
+  /competitors:
+    get:
+      tags: [competitors]
+      summary: 반경 내 경쟁 숙박업소 조회 (PostGIS 반경검색)
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: lng
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: radiusMeters
+          in: query
+          required: false
+          schema: { type: integer, default: 1000 }
+        - name: category
+          in: query
+          required: false
+          description: 미지정 시 전체 업종
+          schema:
+            $ref: "#/components/schemas/LodgingCategory"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompetitorLodging"
+
+  /competitors/summary:
+    get:
+      tags: [competitors]
+      summary: 반경 내 업종별 경쟁현황 집계
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: lng
+          in: query
+          required: true
+          schema: { type: number, format: double }
+        - name: radiusMeters
+          in: query
+          required: false
+          schema: { type: integer, default: 1000 }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompetitorSummaryItem"
+
+  /competitors/recent-openings:
+    get:
+      tags: [competitors]
+      summary: 최근 30일 기준 지역별 신규 개업 순위
+      parameters:
+        - name: regionCode
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CompetitorLodging"
+
+components:
+  parameters:
+    BuildingId:
+      name: buildingId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+
+  schemas:
+    BuildingProfile:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        buildingRegistryNo: { type: string, example: "2611014000-1-00580001" }
+        jibunAddress: { type: string, example: "부산광역시 중구 남포동5가" }
+        parcelNumber: { type: string, example: "58-1" }
+        roadAddress: { type: string }
+        siteAreaSqm: { type: number, nullable: true }
+        buildingAreaSqm: { type: number, nullable: true }
+        totalFloorAreaSqm: { type: number, nullable: true }
+        landUseZone: { type: string, example: "일반상업" }
+        landUseDistrict: { type: string, example: "방화지구 외 1" }
+        mainStructure: { type: string, example: "철근콘크리트" }
+        mainUsageText:
+          type: string
+          description: 대장 표제부 주용도 원문 — 층별현황과 불일치 가능하므로 참고용
+        floorsBelowGround: { type: integer }
+        floorsAboveGround: { type: integer }
+        hasRooftopFloor: { type: boolean }
+        approvalDate: { type: string, format: date, nullable: true }
+        isViolatingBuilding: { type: boolean }
+        hadPastViolation: { type: boolean }
+        sewageFacilityType: { type: string, nullable: true, description: "대장에 공란인 경우가 흔함" }
+        sewageFacilityCapacityM3: { type: number, nullable: true }
+        parkingIndoorCount: { type: integer, nullable: true }
+        parkingOutdoorCount: { type: integer, nullable: true }
+        floors:
+          type: array
+          items:
+            $ref: "#/components/schemas/BuildingFloor"
+        changeHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/BuildingChangeHistoryItem"
+
+    BuildingFloor:
+      type: object
+      properties:
+        floorLabel: { type: string, example: "2층" }
+        structureType: { type: string, example: "철근콘크리트스라브" }
+        usageText: { type: string, example: "단독주택" }
+        areaSqm: { type: number, example: 92.13 }
+
+    BuildingChangeHistoryItem:
+      type: object
+      properties:
+        changedAt: { type: string, format: date }
+        description: { type: string }
+        isViolationRelated: { type: boolean }
+
+    LanduseLookup:
+      type: object
+      properties:
+        zoneDetail: { type: string, nullable: true }
+        lodgingRestriction:
+          type: string
+          nullable: true
+          enum: [POSSIBLE, RESTRICTED, PROHIBITED]
+        lodgingRestrictionBasis: { type: string, nullable: true }
+        districtPlanExists: { type: boolean, nullable: true }
+        districtPlanName: { type: string, nullable: true }
+        districtPlanAllowsLodging: { type: boolean, nullable: true }
+        notes: { type: string, nullable: true }
+        source:
+          type: string
+          enum: [PUBLIC_API, MANUAL_ASTRA_INPUT]
+        queriedAt: { type: string, format: date-time, nullable: true }
+
+    LanduseLookupInput:
+      type: object
+      required: [lodgingRestriction, source]
+      properties:
+        zoneDetail: { type: string }
+        lodgingRestriction:
+          type: string
+          enum: [POSSIBLE, RESTRICTED, PROHIBITED]
+        lodgingRestrictionBasis: { type: string }
+        districtPlanExists: { type: boolean }
+        districtPlanName: { type: string }
+        districtPlanAllowsLodging: { type: boolean }
+        notes: { type: string }
+        source:
+          type: string
+          enum: [PUBLIC_API, MANUAL_ASTRA_INPUT]
+
+    ScreeningRequestInput:
+      type: object
+      required: [buildingId, targetFloorLabels]
+      properties:
+        buildingId: { type: integer, format: int64 }
+        targetFloorLabels:
+          type: array
+          items: { type: string }
+          example: ["2층", "3층"]
+        hasKitchenFacility:
+          type: boolean
+          default: true
+          description: 호스텔은 기본 취사시설 있음(오수계수 0.067) 가정
+
+    ScreeningResult:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        buildingId: { type: integer, format: int64 }
+        targetFloorLabels:
+          type: array
+          items: { type: string }
+        targetAreaSqm: { type: number }
+        overallVerdict:
+          type: string
+          enum: [PENDING_LANDUSE, CONDITIONAL_OK, NEEDS_REVIEW, DIFFICULT]
+          description: >
+            PENDING_LANDUSE = 용도지역 관문 미확정으로 토지이음 조회 필요(2단계 대기);
+            나머지는 조회 결과 반영 후 3단계 확정값
+        summary: { type: string }
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ScreeningItem"
+        createdAt: { type: string, format: date-time }
+
+    ScreeningItem:
+      type: object
+      properties:
+        itemCode:
+          type: string
+          enum:
+            - LAND_USE_ZONE
+            - VIOLATION
+            - FIRE_DISTRICT
+            - CURRENT_USE
+            - DIRECT_STAIR
+            - FIRE_SAFETY
+            - PARKING
+            - SEWAGE
+        status:
+          type: string
+          enum: [OK, REQUIRED, REVIEW, NG]
+        legalBasis: { type: string }
+        requiredAction: { type: string }
+        computedValue:
+          type: object
+          description: >-
+            계산값 (예: requiredParkingSpaces=1, sewagePersonsEstimated=12 형태의 키-값)
+          additionalProperties: true
+
+    LodgingCategory:
+      type: string
+      enum: [PENSION, MOTEL, GUESTHOUSE, LIVING_LODGING, HOTEL, HOSTEL, HANOK]
+
+    CompetitorLodging:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        businessName: { type: string }
+        category:
+          $ref: "#/components/schemas/LodgingCategory"
+        permitDate: { type: string, format: date, nullable: true }
+        address: { type: string }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+
+    CompetitorSummaryItem:
+      type: object
+      properties:
+        category:
+          $ref: "#/components/schemas/LodgingCategory"
+        count: { type: integer }

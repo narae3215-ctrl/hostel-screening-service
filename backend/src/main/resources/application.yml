@@ -1,0 +1,40 @@
+spring:
+  application:
+    name: hostel-screening-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/hostel_screening
+    username: ${DB_USERNAME:hostel_screening}
+    password: ${DB_PASSWORD:changeme}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate   # 스키마는 Flyway가 관리한다 (db/migration/V1__init_schema.sql)
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  batch:
+    job:
+      enabled: false # 배치는 스케줄러가 명시적으로 트리거 (3.8)
+
+server:
+  port: 8080
+
+hostel-screening:
+  public-data:
+    building-hub:
+      base-url: https://apis.data.go.kr/1613000/BldRgstHubService
+      service-key: ${PUBLIC_DATA_SERVICE_KEY:}
+    land-use:
+      base-url: https://apis.data.go.kr/1611000/nsdi/LandUsePlanService
+      service-key: ${PUBLIC_DATA_SERVICE_KEY:}
+  cache:
+    building-ttl-hours: 24

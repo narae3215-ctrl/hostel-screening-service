@@ -1,0 +1,481 @@
+<title>용도변경 스크리닝 도면</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --paper:#f3f5f7;
+    --paper-line:#dbe3ea;
+    --ink:#16324f;
+    --ink-dim:#4a6178;
+    --accent:#2f6690;
+    --accent-strong:#103a5c;
+    --ok:#2f7d3c;
+    --warn:#9a6b08;
+    --review:#5b6670;
+    --danger:#a13d2f;
+    --tag-fill:#ffffff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --paper:#0e2a44;
+      --paper-line:#1c4468;
+      --ink:#eaf1f8;
+      --ink-dim:#a9c1d6;
+      --accent:#7fb2d8;
+      --accent-strong:#bcd9ee;
+      --ok:#6fcf7d;
+      --warn:#e0b23e;
+      --review:#9aa4ad;
+      --danger:#ef6a56;
+      --tag-fill:#0b2138;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0e2a44;
+    --paper-line:#1c4468;
+    --ink:#eaf1f8;
+    --ink-dim:#a9c1d6;
+    --accent:#7fb2d8;
+    --accent-strong:#bcd9ee;
+    --ok:#6fcf7d;
+    --warn:#e0b23e;
+    --review:#9aa4ad;
+    --danger:#ef6a56;
+    --tag-fill:#0b2138;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"IBM Plex Sans KR","Noto Sans KR",sans-serif;
+    padding:0 16px;
+    padding-block:32px 64px;
+  }
+  .sheet-set{
+    max-width:980px;
+    margin:0 auto;
+    display:flex;
+    flex-direction:column;
+    gap:40px;
+  }
+  .mono{font-family:"IBM Plex Mono",ui-monospace,monospace;}
+
+  /* ---------- title block (drawing cover) ---------- */
+  .titleblock{
+    border:1.5px solid var(--ink);
+    background:var(--tag-fill);
+  }
+  .titleblock-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    padding:20px 24px 14px;
+    border-bottom:1px solid var(--paper-line);
+    flex-wrap:wrap;
+    gap:8px 20px;
+  }
+  .titleblock-head h1{
+    margin:0;
+    font-size:1.5rem;
+    font-weight:700;
+    text-wrap:balance;
+  }
+  .titleblock-head .drawno{
+    font-size:.78rem;
+    color:var(--ink-dim);
+    letter-spacing:.04em;
+  }
+  .titleblock-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    font-size:.78rem;
+  }
+  .titleblock-grid div{
+    padding:10px 14px;
+    border-top:1px solid var(--paper-line);
+    border-left:1px solid var(--paper-line);
+  }
+  .titleblock-grid div:nth-child(-n+4){border-top:none;}
+  .titleblock-grid div:nth-child(4n+1){border-left:none;}
+  .titleblock-grid .label{
+    display:block;
+    color:var(--ink-dim);
+    letter-spacing:.06em;
+    margin-bottom:3px;
+    text-transform:uppercase;
+    font-size:.68rem;
+  }
+  .titleblock-grid .value{font-weight:500;}
+  @media (max-width:640px){
+    .titleblock-grid{grid-template-columns:repeat(2,1fr);}
+    .titleblock-grid div:nth-child(-n+4){border-top:1px solid var(--paper-line);}
+    .titleblock-grid div:nth-child(odd){border-left:none;}
+    .titleblock-grid div:nth-child(-n+2){border-top:none;}
+  }
+  .sheet-index{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px 16px;
+    padding:14px 24px 20px;
+    font-size:.76rem;
+  }
+  .sheet-index a{
+    color:var(--accent-strong);
+    text-decoration:none;
+    border-bottom:1px dotted var(--accent);
+  }
+
+  /* ---------- graph paper sheet ---------- */
+  .sheet{
+    border:1.5px solid var(--ink);
+    background-image:
+      linear-gradient(var(--paper-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--paper-line) 1px, transparent 1px);
+    background-size:24px 24px;
+    background-color:var(--tag-fill);
+  }
+  .sheet-tab{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:10px 18px;
+    border-bottom:1.5px solid var(--ink);
+    background:var(--accent-strong);
+    color:var(--paper);
+    flex-wrap:wrap;
+    gap:6px 16px;
+  }
+  .sheet-tab .num{
+    font-size:.72rem;
+    letter-spacing:.08em;
+    opacity:.85;
+  }
+  .sheet-tab h2{
+    margin:0;
+    font-size:1.08rem;
+    font-weight:700;
+  }
+  .sheet-tab .scale{
+    font-size:.72rem;
+    opacity:.85;
+  }
+  .sheet-body{
+    padding:22px;
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+  }
+
+  /* ---------- generic wireframe primitives ---------- */
+  .wf-box{
+    border:1.5px dashed var(--ink-dim);
+    background:color-mix(in srgb, var(--paper) 55%, transparent);
+    border-radius:2px;
+    padding:10px 12px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    min-width:0;
+  }
+  .wf-box .tag{
+    font-size:.66rem;
+    letter-spacing:.05em;
+    color:var(--accent-strong);
+    text-transform:uppercase;
+  }
+  .wf-box .fake-line{
+    height:9px;
+    border-radius:2px;
+    background:var(--paper-line);
+    width:var(--w,70%);
+  }
+  .wf-box .fake-block{
+    border:1px solid var(--paper-line);
+    border-radius:2px;
+    min-height:var(--h,40px);
+  }
+  .row{display:flex;gap:14px;flex-wrap:wrap;}
+  .row > *{flex:1 1 220px;}
+  .col{display:flex;flex-direction:column;gap:14px;}
+
+  .note{
+    font-size:.78rem;
+    color:var(--ink-dim);
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+  }
+  .note .n{
+    font-family:"IBM Plex Mono",monospace;
+    font-weight:600;
+    color:var(--accent-strong);
+    flex:0 0 auto;
+  }
+  .callout{
+    font-size:.68rem;
+    font-weight:600;
+    color:var(--accent-strong);
+    font-family:"IBM Plex Mono",monospace;
+    border:1px solid var(--accent-strong);
+    border-radius:50%;
+    width:16px;height:16px;
+    display:inline-flex;
+    align-items:center;justify-content:center;
+    flex:0 0 auto;
+  }
+
+  /* ---------- checklist table (screen 4) ---------- */
+  table.checklist{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.78rem;
+  }
+  table.checklist th, table.checklist td{
+    border:1px solid var(--paper-line);
+    padding:7px 9px;
+    text-align:left;
+    vertical-align:top;
+  }
+  table.checklist th{
+    background:color-mix(in srgb, var(--accent) 12%, var(--tag-fill));
+    font-weight:600;
+    font-size:.7rem;
+    letter-spacing:.03em;
+  }
+  .status-pill{
+    font-family:"IBM Plex Mono",monospace;
+    font-size:.66rem;
+    font-weight:600;
+    padding:2px 7px;
+    border-radius:999px;
+    display:inline-block;
+    white-space:nowrap;
+  }
+  .status-OK{color:var(--ok); border:1px solid var(--ok);}
+  .status-REQUIRED{color:var(--warn); border:1px solid var(--warn);}
+  .status-REVIEW{color:var(--review); border:1px solid var(--review);}
+  .status-NG{color:var(--danger); border:1px solid var(--danger);}
+
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px 22px;
+    font-size:.74rem;
+    padding:12px 14px;
+    border:1px solid var(--paper-line);
+    background:color-mix(in srgb, var(--paper) 60%, transparent);
+  }
+  .legend div{display:flex;align-items:center;gap:7px;}
+
+  footer.colophon{
+    text-align:center;
+    font-size:.7rem;
+    color:var(--ink-dim);
+    padding-top:8px;
+  }
+</style>
+
+<div class="sheet-set">
+
+  <!-- ============ TITLE BLOCK ============ -->
+  <div class="titleblock">
+    <div class="titleblock-head">
+      <h1>용도변경 스크리닝 서비스 — UI 도면</h1>
+      <span class="mono drawno">DRAWING NO. HUS-WF-001</span>
+    </div>
+    <div class="titleblock-grid mono">
+      <div><span class="label">프로젝트</span><span class="value">호스텔 용도변경 1차 스크리닝</span></div>
+      <div><span class="label">WBS</span><span class="value">1.6 UI/UX 와이어프레임</span></div>
+      <div><span class="label">축척</span><span class="value">NOT TO SCALE (저해상도)</span></div>
+      <div><span class="label">버전</span><span class="value">v0.1 — DRAFT</span></div>
+      <div><span class="label">예시 데이터</span><span class="value">부산 중구 남포동5가 58-1</span></div>
+      <div><span class="label">기준 스킬</span><span class="value">hostel-use-change-screening</span></div>
+      <div><span class="label">화면 수</span><span class="value">5 SHEETS</span></div>
+      <div><span class="label">상태</span><span class="value">검토용 초안</span></div>
+    </div>
+    <div class="sheet-index">
+      <a href="#s01">SHEET 01 — 주소 검색</a>
+      <a href="#s02">SHEET 02 — 지도·반경 경쟁현황</a>
+      <a href="#s03">SHEET 03 — 건물 상세 카드</a>
+      <a href="#s04">SHEET 04 — 판정 결과 체크리스트</a>
+      <a href="#s05">SHEET 05 — 경쟁현황 대시보드</a>
+    </div>
+  </div>
+
+  <!-- ============ SHEET 01 — 주소 검색 ============ -->
+  <div class="sheet" id="s01">
+    <div class="sheet-tab">
+      <span class="num mono">SHEET 01 / 05</span>
+      <h2>주소 검색 (랜딩)</h2>
+      <span class="scale mono">6.1</span>
+    </div>
+    <div class="sheet-body">
+      <div class="wf-box">
+        <span class="tag">HEADER_NAV</span>
+        <div class="fake-line" style="--w:30%"></div>
+      </div>
+      <div class="wf-box" style="align-items:center;">
+        <span class="tag">HERO / ADDRESS_INPUT</span>
+        <div class="fake-line" style="--w:55%"></div>
+        <div class="fake-block" style="--h:44px; width:100%; max-width:480px;"></div>
+        <div class="fake-line" style="--w:22%"></div>
+      </div>
+      <div class="row">
+        <div class="wf-box"><span class="tag">QUICK_CHIP</span><div class="fake-line" style="--w:60%"></div></div>
+        <div class="wf-box"><span class="tag">QUICK_CHIP</span><div class="fake-line" style="--w:60%"></div></div>
+        <div class="wf-box"><span class="tag">QUICK_CHIP</span><div class="fake-line" style="--w:60%"></div></div>
+      </div>
+      <div class="col">
+        <div class="note"><span class="callout">①</span>카카오 주소검색 API 자동완성 — 지번/도로명 모두 허용</div>
+        <div class="note"><span class="callout">②</span>제출 시 <span class="mono">GET /buildings/search?address=</span> 호출, 캐시 HIT/MISS에 따라 로딩 상태 1~2초 vs 3~5초 분기 안내 필요</div>
+        <div class="note"><span class="callout">③</span>회원가입 없이 바로 조회 가능 (비로그인 접근)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SHEET 02 — 지도 ============ -->
+  <div class="sheet" id="s02">
+    <div class="sheet-tab">
+      <span class="num mono">SHEET 02 / 05</span>
+      <h2>지도 · 반경 경쟁현황</h2>
+      <span class="scale mono">6.2</span>
+    </div>
+    <div class="sheet-body">
+      <div class="row" style="align-items:stretch;">
+        <div class="wf-box" style="flex:2 1 420px;">
+          <span class="tag">MAP_CANVAS (카카오맵)</span>
+          <div class="fake-block" style="--h:220px; width:100%;"></div>
+          <div class="fake-line" style="--w:40%"></div>
+        </div>
+        <div class="wf-box" style="flex:1 1 200px;">
+          <span class="tag">RADIUS_FILTER</span>
+          <div class="fake-line" style="--w:70%"></div>
+          <div class="fake-block" style="--h:24px"></div>
+          <span class="tag" style="margin-top:6px;">CATEGORY_FILTER</span>
+          <div class="fake-line" style="--w:80%"></div>
+          <div class="fake-line" style="--w:65%"></div>
+          <div class="fake-line" style="--w:72%"></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="note"><span class="callout">①</span>조회된 대지 좌표를 중심으로 마커 표시, 반경 슬라이더(기본 1,000m)로 재조회</div>
+        <div class="note"><span class="callout">②</span>업종 필터: 펜션·모텔·게스트하우스·생활숙박·호텔·호스텔·한옥 (다중 선택)</div>
+        <div class="note"><span class="callout">③</span>마커 클러스터링 — 밀집 지역은 개수 배지로 축약 표시</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SHEET 03 — 건물 상세 카드 ============ -->
+  <div class="sheet" id="s03">
+    <div class="sheet-tab">
+      <span class="num mono">SHEET 03 / 05</span>
+      <h2>건물 상세 카드</h2>
+      <span class="scale mono">6.3</span>
+    </div>
+    <div class="sheet-body">
+      <div class="row">
+        <div class="wf-box">
+          <span class="tag">BUILDING_SUMMARY</span>
+          <div class="fake-line" style="--w:75%"></div>
+          <div class="fake-line" style="--w:50%"></div>
+          <div class="fake-line" style="--w:60%"></div>
+          <div class="fake-line" style="--w:40%"></div>
+        </div>
+        <div class="wf-box">
+          <span class="tag">FLOOR_TABLE</span>
+          <div class="fake-line" style="--w:90%"></div>
+          <div class="fake-line" style="--w:85%"></div>
+          <div class="fake-line" style="--w:88%"></div>
+          <div class="fake-line" style="--w:80%"></div>
+        </div>
+      </div>
+      <div class="wf-box">
+        <span class="tag">TARGET_FLOOR_SELECTOR</span>
+        <div class="fake-line" style="--w:35%"></div>
+        <div class="row">
+          <div class="fake-block" style="--h:30px"></div>
+          <div class="fake-block" style="--h:30px"></div>
+          <div class="fake-block" style="--h:30px"></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="note"><span class="callout">①</span>예시: 고유번호 2611014000-1-00580001 · 일반상업 · 방화지구 외 1 · 연면적 373.81㎡</div>
+        <div class="note"><span class="callout">②</span>층별 표는 대장 을 건축물현황을 그대로 반영 (지1 위락시설 96.56㎡ / 1층 근생 92.13㎡ / 2층·3층 단독주택 92.13·85.55㎡ / 옥탑1층 7.44㎡)</div>
+        <div class="note"><span class="callout">③</span>체크박스로 전환 대상 층 선택 → "판정 실행" 버튼으로 SHEET 04 이동</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SHEET 04 — 판정 결과 체크리스트 ============ -->
+  <div class="sheet" id="s04">
+    <div class="sheet-tab">
+      <span class="num mono">SHEET 04 / 05</span>
+      <h2>판정 결과 체크리스트</h2>
+      <span class="scale mono">6.4</span>
+    </div>
+    <div class="sheet-body">
+      <div class="legend mono">
+        <div><span class="status-pill status-OK">OK</span>허용/충족</div>
+        <div><span class="status-pill status-REQUIRED">REQUIRED</span>설치·확보 필요</div>
+        <div><span class="status-pill status-REVIEW">REVIEW</span>도면·관청 확인 필요</div>
+        <div><span class="status-pill status-NG">NG</span>불허 근접</div>
+      </div>
+      <table class="checklist">
+        <thead>
+          <tr><th>항목</th><th>상태</th><th>근거 법령(요약)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>① 용도지역</td><td><span class="status-pill status-OK">OK</span></td><td>일반상업 — 토지이음 최종확인 대기</td></tr>
+          <tr><td>② 위반건축물</td><td><span class="status-pill status-REVIEW">REVIEW</span></td><td>과거 위반→해제 이력</td></tr>
+          <tr><td>③ 방화지구</td><td><span class="status-pill status-REVIEW">REVIEW</span></td><td>방화창·60분방화문 현장확인</td></tr>
+          <tr><td>④ 현재용도</td><td><span class="status-pill status-REVIEW">REVIEW</span></td><td>주택 → 시설군 변경 허가 대상</td></tr>
+          <tr><td>⑤ 직통계단</td><td><span class="status-pill status-OK">OK</span></td><td>시행령 §34, 층별 200㎡ 미만</td></tr>
+          <tr><td>⑥ 소방시설</td><td><span class="status-pill status-REQUIRED">REQUIRED</span></td><td>자탐·유도등 등 (별표4)</td></tr>
+          <tr><td>⑦ 부설주차장</td><td><span class="status-pill status-REVIEW">REVIEW</span></td><td>조례 단위 확인 필요</td></tr>
+          <tr><td>⑧ 오수/하수</td><td><span class="status-pill status-REVIEW">REVIEW</span></td><td>처리시설 정보 공란</td></tr>
+        </tbody>
+      </table>
+      <div class="col">
+        <div class="note"><span class="callout">①</span>표 상단에 "1차 스크리닝이며 최종 인허가 판단 아님" 고정 배너 — 스크롤해도 항상 노출</div>
+        <div class="note"><span class="callout">②</span>행 클릭 시 근거 법령 전문 + 필요 조치 상세를 아코디언으로 펼침</div>
+        <div class="note"><span class="callout">③</span>하단에 "관청 확인 필수 항목" 별도 섹션 + 토지이음 조회 지시문 복사 버튼</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SHEET 05 — 경쟁현황 대시보드 ============ -->
+  <div class="sheet" id="s05">
+    <div class="sheet-tab">
+      <span class="num mono">SHEET 05 / 05</span>
+      <h2>경쟁현황 대시보드</h2>
+      <span class="scale mono">6.5</span>
+    </div>
+    <div class="sheet-body">
+      <div class="row">
+        <div class="wf-box"><span class="tag">STAT_TILE</span><div class="fake-line" style="--w:50%"></div><div class="fake-line" style="--w:30%"></div></div>
+        <div class="wf-box"><span class="tag">STAT_TILE</span><div class="fake-line" style="--w:50%"></div><div class="fake-line" style="--w:30%"></div></div>
+        <div class="wf-box"><span class="tag">STAT_TILE</span><div class="fake-line" style="--w:50%"></div><div class="fake-line" style="--w:30%"></div></div>
+      </div>
+      <div class="row">
+        <div class="wf-box" style="flex:2 1 380px;">
+          <span class="tag">CATEGORY_BAR_CHART</span>
+          <div class="fake-block" style="--h:150px; width:100%;"></div>
+        </div>
+        <div class="wf-box" style="flex:1 1 220px;">
+          <span class="tag">RECENT_OPENINGS_LIST</span>
+          <div class="fake-line" style="--w:85%"></div>
+          <div class="fake-line" style="--w:78%"></div>
+          <div class="fake-line" style="--w:82%"></div>
+          <div class="fake-line" style="--w:70%"></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="note"><span class="callout">①</span>업종별(펜션/모텔/게스트하우스/생활숙박/호텔/호스텔/한옥) 반경 내 분포를 막대그래프로</div>
+        <div class="note"><span class="callout">②</span>최근 30일 신규 개업 순위 리스트 — <span class="mono">GET /competitors/recent-openings</span></div>
+        <div class="note"><span class="callout">③</span>SHEET 04(판정결과)와 SHEET 05(경쟁현황)는 탭으로 전환, 같은 건물 컨텍스트 유지</div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="colophon mono">HUS-WF-001 · DRAFT FOR INTERNAL REVIEW · NOT FOR CONSTRUCTION</footer>
+</div>
