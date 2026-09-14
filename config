@@ -1,0 +1,13 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+[user]
+	email = dev@hostelscreening.local
+	name = Hostel Screening Bot
+[lfs]
+	repositoryformatversion = 0
+[remote "origin"]
+	url = https://github.com/narae3215-ctrl/hostel-screening-service.git
+	fetch = +refs/heads/*:refs/remotes/origin/*

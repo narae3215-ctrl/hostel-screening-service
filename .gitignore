@@ -1,0 +1,21 @@
+# Backend (Gradle/Kotlin)
+backend/build/
+backend/.gradle/
+backend/out/
+*.class
+
+# Frontend (Next.js)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.env*.local
+
+# OS/IDE
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Secrets
+.env
+*.pem
