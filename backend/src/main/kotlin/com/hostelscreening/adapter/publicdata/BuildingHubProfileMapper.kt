@@ -12,14 +12,11 @@ import java.time.format.DateTimeFormatter
 /**
  * getBrTitleInfo + getBrFlrOulnInfo 원본 응답을 순수 도메인 BuildingProfile로 변환한다.
  *
- * ⚠️ 필드 신뢰도가 균일하지 않다 — BrTitleInfoItem/BrFlrOulnInfoItem 주석에 적어둔 대로,
- * 주소·면적·구조·주용도·층수·사용승인일은 여러 공개 레퍼런스로 교차 확인된 필드라 신뢰도가
- * 높다. 반면 용도지역/지구/구역, 위반건축물여부, 주차·하수처리 정보는 정확한 필드명을
- * 문서로 확정하지 못했다(정부 API 문서가 동적 렌더링이라 자동으로 읽어올 수 없었음).
- * → 이 값들은 일단 시도해보되, 실제 응답을 1건 받아 BuildingLookupController의
- *   rawResponse 필드와 대조해 잘못된 필드명은 정정해야 한다. 잘못 매핑된 경우 대부분
- *   null/false로 떨어지므로 "REVIEW로 안전하게 수렴"하는 기존 판정 규칙 특성상 즉시
- *   잘못된 승인(OK) 판정으로 이어지지는 않지만, 위반건축물 이력만은 예외이니 특히 주의.
+ * ⚠️ 필드 신뢰도가 균일하지 않다 — 2026-09-15 실제 응답(부산 중구 남포동5가 58-1)으로
+ * 주소·면적·구조·주용도·층수·사용승인일·위반건축물여부(regstrKindCdNm)까지는 검증 완료했다.
+ * 반면 용도지역/지구/구역은 표제부 응답에 아예 없는 필드로 확인됐다 — 별도의 토지이용계획
+ * API(LandUsePlanService, WBS 3.5 미구현) 연동 전까지는 항상 null이다. 주차·하수처리 정보도
+ * 여전히 필드명 미확정(TODO).
  *
  * hadPastViolation(과거 위반→해제 이력)은 변동사항 이력에서 나오는 값인데, 이 두 오퍼레이션
  * (표제부/층별개요)에는 변동사항이 포함되지 않는다. 별도의 이력 조회 오퍼레이션이 필요하므로
@@ -43,24 +40,43 @@ object BuildingHubProfileMapper {
             siteAreaSqm = title.siteAreaSqm?.toBigDecimalOrNull(),
             buildingAreaSqm = title.buildingAreaSqm?.toBigDecimalOrNull(),
             totalFloorAreaSqm = title.totalFloorAreaSqm?.toBigDecimalOrNull(),
-            landUseZone = title.landUseZone, // TODO 검증
-            landUseDistrict = title.landUseDistrict, // TODO 검증
-            landUseArea = title.landUseArea, // TODO 검증
+            landUseZone = title.landUseZone, // LandUsePlanService(3.5) 연동 전까지 항상 null — 확인됨
+            landUseDistrict = title.landUseDistrict, // 위와 동일
+            landUseArea = title.landUseArea, // 위와 동일
             mainStructure = title.mainStructure,
             mainUsageText = title.mainUsageText,
             floorsBelowGround = title.floorsBelowGround ?: 0,
             floorsAboveGround = title.floorsAboveGround ?: 0,
             hasRooftopFloor = floors.any { it.floorNoName?.contains("옥탑") == true },
             approvalDate = title.approvalDate?.toLocalDateOrNull(),
-            isViolatingBuilding = title.violationValue?.let { it == "Y" || it == "1" } ?: false, // TODO 검증
+            isViolatingBuilding = title.registryKindName?.contains("위반") == true, // 2026-09-15 검증됨
             hadPastViolation = false, // TODO: 변동사항 이력 오퍼레이션 연동 전까지 항상 false — 위 클래스 주석 참고
             sewageFacilityType = null, // TODO: 필드 미확정 — 3.3 범위에서는 미매핑, REVIEW로 안전하게 수렴
             sewageFacilityCapacityM3 = null, // TODO: 위와 동일
             parkingIndoorCount = null, // TODO: 필드 미확정
             parkingOutdoorCount = null, // TODO: 필드 미확정
-            floors = floors.mapNotNull { toBuildingFloor(it) },
+            floors = dedupeFloors(floors).mapNotNull { toBuildingFloor(it) },
             changeHistory = emptyList(), // TODO: 변동사항 이력 오퍼레이션 미연동
         )
+    }
+
+    /**
+     * 2026-09-15 확인: getBrFlrOulnInfo는 같은 층에 대해 과거 이력 개정판이 여러 건 쌓여있다
+     * (남포동5가 58-1은 실제 층 5개인데 totalCount=12). (floorDivisionName, floorNo) 조합이
+     * 같은 레코드 중 crtnDay(데이터 생성일자)가 가장 최신인 것만 남긴다.
+     */
+    private fun dedupeFloors(floors: List<BrFlrOulnInfoItem>): List<BrFlrOulnInfoItem> =
+        floors
+            .sortedByDescending { it.createdDate.orEmpty() }
+            .distinctBy { "${it.floorDivisionName}-${it.floorNo}" }
+            .sortedWith(compareBy({ divisionRank(it.floorDivisionName) }, { it.floorNo }))
+
+    // 지하 → 지상 → 옥탑 순으로 표시하기 위한 정렬 키.
+    private fun divisionRank(division: String?): Int = when (division) {
+        "지하" -> 0
+        "지상" -> 1
+        "옥탑" -> 2
+        else -> 3
     }
 
     private fun toBuildingFloor(item: BrFlrOulnInfoItem): BuildingFloor? {

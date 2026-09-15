@@ -56,24 +56,47 @@ class BuildingHubClient(
         return envelope?.response?.body?.items?.item?.firstOrNull()
     }
 
+    /**
+     * 2026-09-15 실제 호출로 확인: 이 오퍼레이션은 totalCount가 실제 층 수보다 훨씬 크게 나온다
+     * (과거 이력 개정판이 층별로 쌓여있어 남포동5가 58-1은 실제 층 5개인데 totalCount=12).
+     * 한 번에 numOfRows를 크게 줘도 정상 응답하는 편이지만 안전하게 페이지네이션으로 전부 모은다
+     * (최대 5페이지=최대 100건까지, 그 이상은 비정상 데이터로 보고 중단). 중복 제거는
+     * BuildingHubProfileMapper에서 crtnDay 기준 최신 레코드만 남기는 방식으로 처리한다.
+     */
     fun fetchFloorOutline(parcel: GeocodedParcel): List<BrFlrOulnInfoItem> {
-        val envelope = buildingHubWebClient.get()
-            .uri { builder ->
-                builder.path("/getBrFlrOulnInfo")
-                    .queryParam("serviceKey", decodedServiceKey(publicDataProperties.buildingHub.serviceKey))
-                    .queryParam("sigunguCd", parcel.sigunguCd)
-                    .queryParam("bjdongCd", parcel.bjdongCd)
-                    .queryParam("bun", parcel.bun)
-                    .queryParam("ji", parcel.ji)
-                    .queryParam("_type", "json")
-                    .queryParam("numOfRows", 100) // 층 수가 많은 건물 대비 여유 있게 조회
-                    .build()
-            }
-            .retrieve()
-            .bodyToMono(BrFlrOulnInfoEnvelope::class.java)
-            .onErrorResume { Mono.empty() }
-            .block()
+        val pageSize = 20
+        val collected = mutableListOf<BrFlrOulnInfoItem>()
+        var pageNo = 1
+        var totalCount = Int.MAX_VALUE
 
-        return envelope?.response?.body?.items?.item ?: emptyList()
+        while (collected.size < totalCount && pageNo <= 5) {
+            val envelope = buildingHubWebClient.get()
+                .uri { builder ->
+                    builder.path("/getBrFlrOulnInfo")
+                        .queryParam("serviceKey", decodedServiceKey(publicDataProperties.buildingHub.serviceKey))
+                        .queryParam("sigunguCd", parcel.sigunguCd)
+                        .queryParam("bjdongCd", parcel.bjdongCd)
+                        .queryParam("bun", parcel.bun)
+                        .queryParam("ji", parcel.ji)
+                        .queryParam("_type", "json")
+                        .queryParam("numOfRows", pageSize)
+                        .queryParam("pageNo", pageNo)
+                        .build()
+                }
+                .retrieve()
+                .bodyToMono(BrFlrOulnInfoEnvelope::class.java)
+                .onErrorResume { Mono.empty() }
+                .block()
+
+            val body = envelope?.response?.body
+            val items = body?.items?.item ?: emptyList()
+            if (items.isEmpty()) break
+
+            collected += items
+            totalCount = body.totalCount ?: collected.size
+            pageNo++
+        }
+
+        return collected
     }
 }

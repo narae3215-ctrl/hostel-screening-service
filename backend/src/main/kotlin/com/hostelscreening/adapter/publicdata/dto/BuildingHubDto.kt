@@ -26,9 +26,13 @@ data class BuildingHubHeader(
 /**
  * getBrTitleInfo(표제부) 응답 항목. platPlc/totArea/archArea/mainPurpsCdNm/useAprDay/
  * grndFlrCnt/ugrndFlrCnt/strctCdNm/platArea는 여러 공개 레퍼런스(PublicDataReader 등)에서
- * 일관되게 확인된 필드명이다. jiyukCdNm/jiguCdNm/guyukCdNm(용도지역/지구/구역)과
- * violation 관련 필드는 문서로 확정하지 못했으므로 TODO로 남겨둔다 — 실제 응답 1건을 받아
- * 정확한 키로 교체해야 한다(연동 후 디버그 엔드포인트로 확인 예정).
+ * 일관되게 확인된 필드명이다.
+ *
+ * 2026-09-15 실제 응답(부산 중구 남포동5가 58-1)으로 확인한 결과, jiyukCdNm/jiguCdNm/guyukCdNm
+ * (용도지역/지구/구역)과 violationValue 필드는 이 오퍼레이션 응답에 아예 존재하지 않는다 —
+ * 용도지역/지구/구역은 별도의 토지이용계획 API(LandUsePlanService, WBS 3.5 미구현)에서 가져와야
+ * 하는 데이터였다. 대신 실제 응답에는 regstrKindCdNm("일반건축물"/"위반건축물")이 있었고, 이게
+ * 위반건축물여부를 나타내는 진짜 필드다 — BuildingHubProfileMapper에서 이 필드로 판정한다.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class BrTitleInfoItem(
@@ -46,11 +50,12 @@ data class BrTitleInfoItem(
     @JsonProperty("rideUseElvtCnt") val elevatorCount: Int? = null,  // 참고용, 판정에 미사용
     @JsonProperty("useAprDay") val approvalDate: String? = null,     // yyyyMMdd
     @JsonProperty("pmsDay") val permitDate: String? = null,          // yyyyMMdd
-    // 아래 3개 필드명은 미확정 — 실제 응답 확인 후 정정 예정 (docs/10 가이드 참고)
-    @JsonProperty("jiyukCdNm") val landUseZone: String? = null,      // TODO 검증: 용도지역
-    @JsonProperty("jiguCdNm") val landUseDistrict: String? = null,   // TODO 검증: 용도지구
-    @JsonProperty("guyukCdNm") val landUseArea: String? = null,      // TODO 검증: 용도구역
-    @JsonProperty("violationValue") val violationValue: String? = null, // TODO 검증: 위반건축물여부
+    // 2026-09-15 실제 응답으로 확인: 표제부 자체엔 위반건축물여부를 나타내는 이 필드가 있다.
+    @JsonProperty("regstrKindCdNm") val registryKindName: String? = null, // "일반건축물" / "위반건축물"
+    // 용도지역/지구/구역은 표제부 응답에 없음이 확인됨 — LandUsePlanService(3.5) 연동 전까지 항상 null.
+    val landUseZone: String? = null,
+    val landUseDistrict: String? = null,
+    val landUseArea: String? = null,
 )
 
 /**
@@ -67,6 +72,9 @@ data class BrFlrOulnInfoItem(
     @JsonProperty("mainPurpsCdNm") val usageText: String? = null,
     @JsonProperty("strctCdNm") val structureType: String? = null,
     @JsonProperty("mainAtchGbCdNm") val buildingGroup: String? = null, // 주/부속 구분 — TODO 검증
+    // 2026-09-15 확인: 이 오퍼레이션은 totalCount가 실제 층 수보다 훨씬 많이 나온다(과거 이력
+    // 개정판이 층별로 여러 건 쌓여있음). crtnDay(데이터 생성일자)로 최신 레코드만 골라 중복 제거한다.
+    @JsonProperty("crtnDay") val createdDate: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
