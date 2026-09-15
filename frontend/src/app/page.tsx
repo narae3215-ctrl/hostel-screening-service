@@ -1,8 +1,9 @@
 import AddressSearchForm from '@/components/AddressSearchForm';
+import ScreeningPreviewDemo from '@/components/ScreeningPreviewDemo';
 
 export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center gap-8 px-4 py-16">
+    <main className="flex min-h-screen flex-col items-center gap-10 px-4 py-16">
       <div className="flex max-w-xl flex-col items-center gap-2 text-center">
         <span className="text-xs font-medium uppercase tracking-wide text-accent">1차 스크리닝 도구</span>
         <h1 className="text-2xl font-bold text-ink">호스텔 용도변경 가능성 스크리닝</h1>
@@ -12,6 +13,9 @@ export default function HomePage() {
         </p>
       </div>
       <AddressSearchForm />
+      <div className="w-full max-w-2xl border-t border-slate-300 pt-8">
+        <ScreeningPreviewDemo />
+      </div>
     </main>
   );
 }
