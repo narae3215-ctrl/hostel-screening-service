@@ -10,7 +10,6 @@ WORKDIR /home/gradle/src
 
 # 의존성 캐시를 최대한 활용하기 위해 빌드 스크립트만 먼저 복사
 COPY build.gradle.kts settings.gradle.kts ./
-COPY gradle ./gradle
 
 # 소스 전체 복사 후 빌드 (테스트는 CI에서 이미 돌리므로 이미지 빌드 시엔 스킵)
 COPY src ./src
