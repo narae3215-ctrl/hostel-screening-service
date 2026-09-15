@@ -93,7 +93,7 @@ class BuildingHubClient(
             if (items.isEmpty()) break
 
             collected += items
-            totalCount = body.totalCount ?: collected.size
+            totalCount = body?.totalCount ?: collected.size
             pageNo++
         }
 
