@@ -26,6 +26,10 @@ class PublicDataWebClientConfig(
         WebClient.builder().baseUrl(publicDataProperties.permitInfo.baseUrl).build()
 
     @Bean
+    fun landUsePlanWebClient(): WebClient =
+        WebClient.builder().baseUrl(publicDataProperties.landUse.baseUrl).build()
+
+    @Bean
     fun kakaoLocalWebClient(): WebClient =
         WebClient.builder()
             .baseUrl(kakaoProperties.localApi.baseUrl)

@@ -54,6 +54,7 @@ class KakaoAddressClient(private val kakaoLocalWebClient: WebClient) {
             roadAddress = document.roadAddress?.addressName,
             longitude = document.x?.toDoubleOrNull(),
             latitude = document.y?.toDoubleOrNull(),
+            isMountain = addr.mountainYn == "Y",
         )
     }
 }

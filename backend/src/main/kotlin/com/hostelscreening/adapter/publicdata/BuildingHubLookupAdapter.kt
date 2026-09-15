@@ -8,13 +8,15 @@ import org.springframework.stereotype.Component
 
 /**
  * BuildingLookupPort 구현체 — "주소 → 카카오 지오코딩 → 건축HUB 표제부/층별개요 조회 →
- * BuildingProfile 매핑" 전체 흐름을 담당한다. 캐싱(Redis, 3.7)은 아직 붙지 않았으므로
- * 매 호출마다 실제 API를 때린다 — 트래픽이 늘면 반드시 캐시를 앞에 둘 것.
+ * 토지이용계획(용도지역/지구) 조회 → BuildingProfile 매핑" 전체 흐름을 담당한다.
+ * 캐싱(Redis, 3.7)은 아직 붙지 않았으므로 매 호출마다 실제 API를 때린다 —
+ * 트래픽이 늘면 반드시 캐시를 앞에 둘 것.
  */
 @Component
 class BuildingHubLookupAdapter(
     private val kakaoAddressClient: KakaoAddressClient,
     private val buildingHubClient: BuildingHubClient,
+    private val landUsePlanClient: LandUsePlanClient,
 ) : BuildingLookupPort {
 
     private val log = LoggerFactory.getLogger(BuildingHubLookupAdapter::class.java)
@@ -37,7 +39,16 @@ class BuildingHubLookupAdapter(
             emptyList()
         }
 
-        val profile = BuildingHubProfileMapper.toBuildingProfile(parcel, title, floors)
+        // 토지이용계획 조회는 아직 필드명이 검증되지 않았다 — 실패해도 나머지 판정은 진행할 수
+        // 있도록 예외를 삼키고 빈 목록으로 처리한다(landUseZone/District는 null로 떨어짐).
+        val landUseRows = try {
+            landUsePlanClient.fetchLandUseAttr(parcel)
+        } catch (e: Exception) {
+            log.warn("토지이용계획 조회 실패: {}", e.message)
+            emptyList()
+        }
+
+        val profile = BuildingHubProfileMapper.toBuildingProfile(parcel, title, floors, landUseRows)
         return BuildingLookupResult.Found(profile)
     }
 }

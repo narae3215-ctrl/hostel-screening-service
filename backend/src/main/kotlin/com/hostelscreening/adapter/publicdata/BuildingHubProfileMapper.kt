@@ -3,6 +3,7 @@ package com.hostelscreening.adapter.publicdata
 import com.hostelscreening.adapter.geocoding.dto.GeocodedParcel
 import com.hostelscreening.adapter.publicdata.dto.BrFlrOulnInfoItem
 import com.hostelscreening.adapter.publicdata.dto.BrTitleInfoItem
+import com.hostelscreening.adapter.publicdata.dto.LandUseAttrItem
 import com.hostelscreening.domain.building.BuildingFloor
 import com.hostelscreening.domain.building.BuildingProfile
 import java.math.BigDecimal
@@ -31,7 +32,9 @@ object BuildingHubProfileMapper {
         parcel: GeocodedParcel,
         title: BrTitleInfoItem,
         floors: List<BrFlrOulnInfoItem>,
+        landUseRows: List<LandUseAttrItem> = emptyList(),
     ): BuildingProfile {
+        val (landUseZone, landUseDistrict) = splitLandUse(landUseRows)
         return BuildingProfile(
             buildingRegistryNo = title.buildingRegistryNo ?: "UNKNOWN-${parcel.sigunguCd}${parcel.bjdongCd}${parcel.bun}${parcel.ji}",
             jibunAddress = title.jibunAddress ?: parcel.jibunAddress,
@@ -40,9 +43,9 @@ object BuildingHubProfileMapper {
             siteAreaSqm = title.siteAreaSqm?.toBigDecimalOrNull(),
             buildingAreaSqm = title.buildingAreaSqm?.toBigDecimalOrNull(),
             totalFloorAreaSqm = title.totalFloorAreaSqm?.toBigDecimalOrNull(),
-            landUseZone = title.landUseZone, // LandUsePlanService(3.5) 연동 전까지 항상 null — 확인됨
-            landUseDistrict = title.landUseDistrict, // 위와 동일
-            landUseArea = title.landUseArea, // 위와 동일
+            landUseZone = landUseZone,
+            landUseDistrict = landUseDistrict,
+            landUseArea = null, // TODO: 구역(용도구역) 분류는 아직 미구현 — 실 응답 확인 후 분리
             mainStructure = title.mainStructure,
             mainUsageText = title.mainUsageText,
             floorsBelowGround = title.floorsBelowGround ?: 0,
@@ -77,6 +80,28 @@ object BuildingHubProfileMapper {
         "지상" -> 1
         "옥탑" -> 2
         else -> 3
+    }
+
+    /**
+     * WBS 3.5 — 토지이용계획 조회 결과(rows)를 용도지역/지구로 분리한다.
+     * ⚠️ 미검증: "국토의 계획 및 이용에 관한 법률"에 따른 행이 용도지역(1건 가정, 예: "일반상업지역"),
+     * 그 외 법령(건축법 등)에 따른 행들이 지구/구역(여러 건 가능, 예: "방화지구")이라는 가정으로
+     * 구현했다 — LandUsePlanClient 주석 참고. 지구가 여러 건이면 대장 표기 관행("방화지구 외 1")을
+     * 흉내 내어 "{첫 지구} 외 {N}"으로 합친다.
+     */
+    private fun splitLandUse(rows: List<LandUseAttrItem>): Pair<String?, String?> {
+        if (rows.isEmpty()) return null to null
+
+        val zoneRow = rows.firstOrNull { it.lawName?.contains("국토의 계획 및 이용에 관한 법률") == true }
+        val districtRows = rows.filterNot { it === zoneRow }.mapNotNull { it.designationName }.distinct()
+
+        val zone = zoneRow?.designationName
+        val district = when {
+            districtRows.isEmpty() -> null
+            districtRows.size == 1 -> districtRows.first()
+            else -> "${districtRows.first()} 외 ${districtRows.size - 1}"
+        }
+        return zone to district
     }
 
     private fun toBuildingFloor(item: BrFlrOulnInfoItem): BuildingFloor? {

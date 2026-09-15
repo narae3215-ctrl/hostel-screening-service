@@ -34,9 +34,10 @@ class BuildingLookupController(private val buildingLookupPort: BuildingLookupPor
 
     private fun toResponse(profile: BuildingProfile) = mapOf(
         "profile" to profile,
-        "note" to "이 값 중 landUseZone/landUseDistrict/landUseArea/isViolatingBuilding/" +
-            "parkingIndoorCount/parkingOutdoorCount/sewageFacilityType/sewageFacilityCapacityM3는 " +
-            "필드명이 검증되지 않은 상태입니다. 실제 주소로 조회해본 뒤 기대값과 다르면 스크린샷/JSON을 " +
-            "공유해주세요 — BuildingHubProfileMapper의 매핑을 바로 정정하겠습니다.",
+        "note" to "landUseZone/landUseDistrict(WBS 3.5, LandUsePlanClient)는 아직 실제 응답으로 " +
+            "필드명을 검증하지 못했습니다 — null이거나 값이 이상하면 공유해주세요. " +
+            "parkingIndoorCount/parkingOutdoorCount/sewageFacilityType/sewageFacilityCapacityM3/" +
+            "landUseArea는 여전히 미구현(TODO)이라 항상 null입니다. isViolatingBuilding/면적/층수/" +
+            "사용승인일 등 나머지 필드는 2026-09-15 실제 주소(부산 중구 남포동5가 58-1)로 검증 완료했습니다.",
     )
 }

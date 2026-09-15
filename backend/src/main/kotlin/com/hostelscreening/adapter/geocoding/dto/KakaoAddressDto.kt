@@ -50,4 +50,13 @@ data class GeocodedParcel(
     val roadAddress: String?,
     val longitude: Double?,
     val latitude: Double?,
-)
+    val isMountain: Boolean = false, // 카카오 mountain_yn — 산지번 여부, PNU 생성에 필요
+) {
+    /**
+     * WBS 3.5 토지이용계획 API(LandUsePlanService)는 sigunguCd/bjdongCd/bun/ji가 아니라
+     * PNU(필지고유번호, 19자리 = 법정동코드10 + 산/일반구분1 + 본번4 + 부번4)를 요구한다.
+     * 산/일반구분: 산지번이면 "2", 일반(대지)이면 "1" — 지적행정 표준 표기를 따른다.
+     */
+    val pnu: String
+        get() = "$sigunguCd$bjdongCd${if (isMountain) "2" else "1"}$bun$ji"
+}
