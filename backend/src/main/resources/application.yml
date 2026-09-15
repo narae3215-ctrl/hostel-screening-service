@@ -40,5 +40,17 @@ hostel-screening:
     land-use:
       base-url: https://apis.data.go.kr/1611000/nsdi/LandUsePlanService
       service-key: ${PUBLIC_DATA_SERVICE_KEY:}
+    # WBS 3.4 — 건축인허가정보 서비스(허가/착공/사용승인 이력). 현재 화면 판정에는 쓰이지 않고,
+    # Phase 5(경쟁현황) 및 향후 인허가 이력 조회용으로 클라이언트만 미리 준비해 둔다.
+    permit-info:
+      base-url: https://apis.data.go.kr/1613000/ArchPmsHubService
+      service-key: ${PUBLIC_DATA_SERVICE_KEY:}
+  kakao:
+    # WBS 3.2 — 카카오 디벨로퍼스에서 발급받은 REST API 키. 서버 쪽에서 주소→좌표 변환(로컬 API)이
+    # 필요한 Phase 5(반경 검색/경쟁현황)에서 사용 예정. 프론트엔드 지도 렌더링용 JavaScript 키는
+    # frontend/.env.example의 NEXT_PUBLIC_KAKAO_MAP_JS_KEY를 따로 사용한다(서로 다른 키).
+    local-api:
+      base-url: https://dapi.kakao.com/v2/local
+      rest-api-key: ${KAKAO_REST_API_KEY:}
   cache:
     building-ttl-hours: 24
